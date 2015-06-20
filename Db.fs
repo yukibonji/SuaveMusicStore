@@ -1,4 +1,4 @@
-﻿module SuaveMusicStore.Db
+﻿module SuaveMusicStore.DbOld
 
 open System
 open FSharp.Data.Sql
