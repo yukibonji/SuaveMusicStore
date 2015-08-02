@@ -26,14 +26,14 @@ type UserLoggedOnSession = {
     Role : string
 }
 
-type Session = 
+type Session =
     | NoSession
     | CartIdOnly of string
     | UserLoggedOn of UserLoggedOnSession
 
-let session f = 
+let session f =
     statefulForSession
-    >>= context (fun x -> 
+    >>= context (fun x ->
         match x |> HttpContext.state with
         | None -> f NoSession
         | Some state ->
@@ -57,9 +57,9 @@ let redirectWithReturnPath redirection =
         let path = x.url.AbsolutePath
         Redirection.FOUND (redirection |> Path.withParam ("returnPath", path)))
 
-let returnPathOrHome = 
-    request (fun x -> 
-        let path = 
+let returnPathOrHome =
+    request (fun x ->
+        let path =
             match (x.queryParam "returnPath") with
             | Choice1Of2 path -> path
             | _ -> Path.home
@@ -81,69 +81,69 @@ let admin f_success =
     ))
 
 let html container =
-    let ctx = Db.getContext()
+    let ctx = Db_Postgres.getContext()
     let result cartItems user =
-        OK (View.index 
-                (View.partNav cartItems) 
-                (View.partUser user) 
-                (View.partGenres (Db.getGenres ctx))
+        OK (View.index
+                (View.partNav cartItems)
+                (View.partUser user)
+                (View.partGenres (Db_Postgres.getGenres ctx))
                 container)
         >>= Writers.setMimeType "text/html; charset=utf-8"
 
     session (function
-    | UserLoggedOn { Username = username } -> 
-        let items = Db.getCartsDetails username ctx |> List.sumBy (fun c -> c.Count)
+    | UserLoggedOn { Username = username } ->
+        let items = Db_Postgres.getCartsDetails username ctx |> List.sumBy (fun c -> c.Count)
         result items (Some username)
     | CartIdOnly cartId ->
-        let items = Db.getCartsDetails cartId ctx |> List.sumBy (fun c -> c.Count)
+        let items = Db_Postgres.getCartsDetails cartId ctx |> List.sumBy (fun c -> c.Count)
         result items None
     | NoSession ->
         result 0 None)
 
 let home =
-    let ctx = Db.getContext()
-    let bestsellers = Db.getBestSellers ctx
+    let ctx = Db_Postgres.getContext()
+    let bestsellers = Db_Postgres.getBestSellers ctx
     View.home bestsellers |> html
 
 let browse =
-    request (fun r -> 
+    request (fun r ->
         match r.queryParam Path.Store.browseKey with
-        | Choice1Of2 genre -> 
-            Db.getContext()
-            |> Db.getAlbumsForGenre genre
+        | Choice1Of2 genre ->
+            Db_Postgres.getContext()
+            |> Db_Postgres.getAlbumsForGenre genre
             |> View.browse genre
             |> html
         | Choice2Of2 msg -> BAD_REQUEST msg)
 
 let overview = warbler (fun _ ->
-    Db.getContext() 
-    |> Db.getGenres 
-    |> List.map (fun g -> g.Name) 
-    |> View.store 
+    Db_Postgres.getContext()
+    |> Db_Postgres.getGenres
+    |> List.map (fun g -> g.Name)
+    |> View.store
     |> html)
 
 let details id =
-    match Db.getAlbumDetails id (Db.getContext()) with
+    match Db_Postgres.getAlbumDetails id (Db_Postgres.getContext()) with
     | Some album ->
         html (View.details album)
     | None ->
         never
 
 let manage = warbler (fun _ ->
-    Db.getContext()
-    |> Db.getAlbumsDetails
+    Db_Postgres.getContext()
+    |> Db_Postgres.getAlbumsDetails
     |> View.manage
     |> html)
 
 let bindToForm form handler =
     bindReq (bindForm form) handler BAD_REQUEST
 
-let authenticateUser (user : Db.User) =
-    Auth.authenticated Cookie.CookieLife.Session false 
+let authenticateUser (user : Db_Postgres.User) =
+    Auth.authenticated Cookie.CookieLife.Session false
     >>= session (function
         | CartIdOnly cartId ->
-            let ctx = Db.getContext()
-            Db.upgradeCarts (cartId, user.UserName) ctx
+            let ctx = Db_Postgres.getContext()
+            Db_Postgres.upgradeCarts (cartId, user.UserName) ctx
             sessionStore (fun store -> store.set "cartid" "")
         | _ -> succeed)
     >>= sessionStore (fun store ->
@@ -155,9 +155,9 @@ let logon =
     choose [
         GET >>= (View.logon "" |> html)
         POST >>= bindToForm Form.logon (fun form ->
-            let ctx = Db.getContext()
+            let ctx = Db_Postgres.getContext()
             let (Password password) = form.Password
-            match Db.validateUser(form.Username, passHash password) ctx with
+            match Db_Postgres.validateUser(form.Username, passHash password) ctx with
             | Some user ->
                 authenticateUser user
             | _ ->
@@ -169,35 +169,35 @@ let register =
     choose [
         GET >>= (View.register "" |> html)
         POST >>= bindToForm Form.register (fun form ->
-            let ctx = Db.getContext()
-            match Db.getUser form.Username ctx with
-            | Some existing -> 
+            let ctx = Db_Postgres.getContext()
+            match Db_Postgres.getUser form.Username ctx with
+            | Some existing ->
                 View.register "Sorry this username is already taken. Try another one." |> html
             | None ->
                 let (Password password) = form.Password
                 let email = form.Email.Address
-                let user = Db.newUser (form.Username, passHash password, email) ctx
+                let user = Db_Postgres.newUser (form.Username, passHash password, email) ctx
                 authenticateUser user
         )
     ]
 
-let cart = 
+let cart =
     session (function
     | NoSession -> View.emptyCart |> html
     | UserLoggedOn { Username = cartId } | CartIdOnly cartId ->
-        let ctx = Db.getContext()
-        Db.getCartsDetails cartId ctx |> View.cart |> html)
+        let ctx = Db_Postgres.getContext()
+        Db_Postgres.getCartsDetails cartId ctx |> View.cart |> html)
 
 let addToCart albumId =
-    let ctx = Db.getContext()
+    let ctx = Db_Postgres.getContext()
     session (function
-            | NoSession -> 
+            | NoSession ->
                 let cartId = Guid.NewGuid().ToString("N")
-                Db.addToCart cartId albumId ctx
+                Db_Postgres.addToCart cartId albumId ctx
                 sessionStore (fun store ->
                     store.set "cartid" cartId)
             | UserLoggedOn { Username = cartId } | CartIdOnly cartId ->
-                Db.addToCart cartId albumId ctx
+                Db_Postgres.addToCart cartId albumId ctx
                 succeed)
         >>= Redirection.FOUND Path.Cart.overview
 
@@ -205,12 +205,12 @@ let removeFromCart albumId =
     session (function
     | NoSession -> never
     | UserLoggedOn { Username = cartId } | CartIdOnly cartId ->
-        let ctx = Db.getContext()
-        match Db.getCart cartId albumId ctx with
-        | Some cart -> 
-            Db.removeFromCart cart albumId ctx
-            Db.getCartsDetails cartId ctx |> View.cart |> Html.flatten |> Html.xmlToString |> OK
-        | None -> 
+        let ctx = Db_Postgres.getContext()
+        match Db_Postgres.getCart cartId albumId ctx with
+        | Some cart ->
+            Db_Postgres.removeFromCart cart albumId ctx
+            Db_Postgres.getCartsDetails cartId ctx |> View.cart |> Html.flatten |> Html.xmlToString |> OK
+        | None ->
             never)
 
 let checkout =
@@ -220,62 +220,62 @@ let checkout =
         choose [
             GET >>= (View.checkout |> html)
             POST >>= warbler (fun _ ->
-                let ctx = Db.getContext()
-                Db.placeOrder username ctx
+                let ctx = Db_Postgres.getContext()
+                Db_Postgres.placeOrder username ctx
                 View.checkoutComplete |> html)
         ])
 
 let createAlbum =
-    let ctx = Db.getContext()
+    let ctx = Db_Postgres.getContext()
     choose [
-        GET >>= warbler (fun _ -> 
-            let genres = 
-                Db.getGenres ctx 
+        GET >>= warbler (fun _ ->
+            let genres =
+                Db_Postgres.getGenres ctx
                 |> List.map (fun g -> decimal g.GenreId, g.Name)
-            let artists = 
-                Db.getArtists ctx
+            let artists =
+                Db_Postgres.getArtists ctx
                 |> List.map (fun g -> decimal g.ArtistId, g.Name)
             html (View.createAlbum genres artists))
         POST >>= bindToForm Form.album (fun form ->
-            Db.createAlbum (int form.ArtistId, int form.GenreId, form.Price, form.Title) ctx
+            Db_Postgres.createAlbum (int form.ArtistId, int form.GenreId, form.Price, form.Title) ctx
             Redirection.FOUND Path.Admin.manage)
     ]
 
 let editAlbum id =
-    let ctx = Db.getContext()
-    match Db.getAlbum id ctx with
+    let ctx = Db_Postgres.getContext()
+    match Db_Postgres.getAlbum id ctx with
     | Some album ->
         choose [
             GET >>= warbler (fun _ ->
-                let genres = 
-                    Db.getGenres ctx 
+                let genres =
+                    Db_Postgres.getGenres ctx
                     |> List.map (fun g -> decimal g.GenreId, g.Name)
-                let artists = 
-                    Db.getArtists ctx
+                let artists =
+                    Db_Postgres.getArtists ctx
                     |> List.map (fun g -> decimal g.ArtistId, g.Name)
                 html (View.editAlbum album genres artists))
             POST >>= bindToForm Form.album (fun form ->
-                Db.updateAlbum album (int form.ArtistId, int form.GenreId, form.Price, form.Title) ctx
-                Redirection.FOUND Path.Admin.manage)
-        ]
-    | None -> 
-        never
-
-let deleteAlbum id =
-    let ctx = Db.getContext()
-    match Db.getAlbum id ctx with
-    | Some album ->
-        choose [ 
-            GET >>= warbler (fun _ -> 
-                html (View.deleteAlbum album.Title))
-            POST >>= warbler (fun _ -> 
-                Db.deleteAlbum album ctx; 
+                Db_Postgres.updateAlbum album (int form.ArtistId, int form.GenreId, form.Price, form.Title) ctx
                 Redirection.FOUND Path.Admin.manage)
         ]
     | None ->
         never
 
-let webPart = 
+let deleteAlbum id =
+    let ctx = Db_Postgres.getContext()
+    match Db_Postgres.getAlbum id ctx with
+    | Some album ->
+        choose [
+            GET >>= warbler (fun _ ->
+                html (View.deleteAlbum album.Title))
+            POST >>= warbler (fun _ ->
+                Db_Postgres.deleteAlbum album ctx;
+                Redirection.FOUND Path.Admin.manage)
+        ]
+    | None ->
+        never
+
+let webPart =
     choose [
         path Path.home >>= home
         path Path.Store.overview >>= overview

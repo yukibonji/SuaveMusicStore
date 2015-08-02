@@ -52,10 +52,10 @@ type FormLayout<'a> = {
     Form : Form<'a>
 }
 
-let renderForm (layout : FormLayout<_>) =    
-    
+let renderForm (layout : FormLayout<_>) =
+
     form [
-        for set in layout.Fieldsets -> 
+        for set in layout.Fieldsets ->
             fieldset [
                 yield legend set.Legend
 
@@ -71,13 +71,13 @@ let renderForm (layout : FormLayout<_>) =
         yield submitInput layout.SubmitText
     ]
 
-let home (bestSellers : Db.BestSeller list) = [
+let home (bestSellers : Db_Postgres.BestSeller list) = [
     imgSrc "/home-showcase.png"
     h2 "Fresh off the grill"
     ulAttr ["id", "album-list"] [
             for album in bestSellers ->
-                li (aHref 
-                        (sprintf Path.Store.details album.AlbumId) 
+                li (aHref
+                        (sprintf Path.Store.details album.AlbumId)
                         (flatten [ imgSrc album.AlbumArtUrl
                                    span (text album.Title)]))
         ]
@@ -89,26 +89,26 @@ let store genres = [
         text (sprintf "Select from %d genres:" (List.length genres))
     ]
     ul [
-        for g in genres -> 
+        for g in genres ->
             li (aHref (Path.Store.browse |> Path.withParam (Path.Store.browseKey, g)) (text g))
     ]
 ]
 
-let browse genre (albums : Db.Album list) = [
-    divClass "genre" [ 
+let browse genre (albums : Db_Postgres.Album list) = [
+    divClass "genre" [
         h2 (sprintf "Genre: %s" genre)
- 
+
         ulAttr ["id", "album-list"] [
             for album in albums ->
-                li (aHref 
-                        (sprintf Path.Store.details album.AlbumId) 
+                li (aHref
+                        (sprintf Path.Store.details album.AlbumId)
                         (flatten [ imgSrc album.AlbumArtUrl
                                    span (text album.Title)]))
         ]
     ]
 ]
 
-let details (album : Db.AlbumDetails) = [
+let details (album : Db_Postgres.AlbumDetails) = [
     h2 album.Title
     p [ imgSrc album.AlbumArtUrl ]
     divId "album-details" [
@@ -123,7 +123,7 @@ let details (album : Db.AlbumDetails) = [
     ]
 ]
 
-let manage (albums : Db.AlbumDetails list) = [ 
+let manage (albums : Db_Postgres.AlbumDetails list) = [
     h2 "Index"
     p [
         aHref Path.Admin.createAlbum (text "Create New")
@@ -133,7 +133,7 @@ let manage (albums : Db.AlbumDetails list) = [
             for t in ["Artist";"Title";"Genre";"Price";""] -> th [ text t ]
         ]
 
-        for album in albums -> 
+        for album in albums ->
         tr [
             for t in [ truncate 25 album.Artist; truncate 25 album.Title; album.Genre; formatDec album.Price ] ->
                 td [ text t ]
@@ -151,13 +151,13 @@ let manage (albums : Db.AlbumDetails list) = [
 
 let deleteAlbum albumTitle = [
     h2 "Delete Confirmation"
-    p [ 
+    p [
         text "Are you sure you want to delete the album titled"
         br
         strong albumTitle
         text "?"
     ]
-    
+
     form [
         submitInput "Delete"
     ]
@@ -167,14 +167,14 @@ let deleteAlbum albumTitle = [
     ]
 ]
 
-let createAlbum genres artists = [ 
+let createAlbum genres artists = [
     h2 "Create"
-        
+
     renderForm
         { Form = Form.album
-          Fieldsets = 
+          Fieldsets =
               [ { Legend = "Album"
-                  Fields = 
+                  Fields =
                       [ { Label = "Genre"
                           Xml = selectInput (fun f -> <@ f.GenreId @>) genres None }
                         { Label = "Artist"
@@ -192,14 +192,14 @@ let createAlbum genres artists = [
     ]
 ]
 
-let editAlbum (album : Db.Album) genres artists = [ 
+let editAlbum (album : Db_Postgres.Album) genres artists = [
     h2 "Edit"
-        
+
     renderForm
         { Form = Form.album
-          Fieldsets = 
+          Fieldsets =
               [ { Legend = "Album"
-                  Fields = 
+                  Fields =
                       [ { Label = "Genre"
                           Xml = selectInput (fun f -> <@ f.GenreId @>) genres (Some (decimal album.GenreId)) }
                         { Label = "Artist"
@@ -231,9 +231,9 @@ let logon msg = [
 
     renderForm
         { Form = Form.logon
-          Fieldsets = 
+          Fieldsets =
               [ { Legend = "Account Information"
-                  Fields = 
+                  Fields =
                       [ { Label = "User Name"
                           Xml = input (fun f -> <@ f.Username @>) [] }
                         { Label = "Password"
@@ -246,16 +246,16 @@ let register msg = [
     p [
         text "Use the form below to create a new account."
     ]
-    
+
     divId "register-message" [
         text msg
     ]
 
     renderForm
         { Form = Form.register
-          Fieldsets = 
+          Fieldsets =
               [ { Legend = "Create a New Account"
-                  Fields = 
+                  Fields =
                       [ { Label = "User name (max 30 characters)"
                           Xml = input (fun f -> <@ f.Username @>) [] }
                         { Label = "Email address"
@@ -274,7 +274,7 @@ let emptyCart = [
     text "!"
 ]
 
-let nonEmptyCart (carts : Db.CartDetails list) = [
+let nonEmptyCart (carts : Db_Postgres.CartDetails list) = [
     h2 "Review your cart:"
     pAttr ["class", "button"] [
             aHref Path.Cart.checkout (text "Checkout >>")
@@ -297,7 +297,7 @@ let nonEmptyCart (carts : Db.CartDetails list) = [
                     text (cart.Count.ToString())
                 ]
                 td [
-                    aHrefAttr "#" ["class", "removeFromCart"; "data-id", cart.AlbumId.ToString()] (text "Remove from cart") 
+                    aHrefAttr "#" ["class", "removeFromCart"; "data-id", cart.AlbumId.ToString()] (text "Remove from cart")
                 ]
             ]
         yield tr [
@@ -316,19 +316,19 @@ let cart = function
 let checkout = [
     h2 "Address And Payment"
     renderForm
-        { Form = Form.checkout 
-          Fieldsets = 
+        { Form = Form.checkout
+          Fieldsets =
               [ { Legend = "Shipping Information"
-                  Fields = 
+                  Fields =
                       [ { Label = "First Name"
                           Xml = input (fun f -> <@ f.FirstName @>) [] }
                         { Label = "Last Name"
                           Xml = input (fun f -> <@ f.LastName @>) [] }
                         { Label = "Address"
                           Xml = input (fun f -> <@ f.Address @>) [] } ] }
-                
+
                 { Legend = "Payment"
-                  Fields = 
+                  Fields =
                       [ { Label = "Promo Code"
                           Xml = input (fun f -> <@ f.PromoCode @>) [] } ] } ]
           SubmitText = "Submit Order"
@@ -358,33 +358,33 @@ let notFound = [
     ]
 ]
 
-let partNav cartItems = 
-    ulAttr ["id", "navlist"] [ 
+let partNav cartItems =
+    ulAttr ["id", "navlist"] [
         li (aHref Path.home (text "Home"))
         li (aHref Path.Store.overview (text "Store"))
         li (aHref Path.Cart.overview (text (sprintf "Cart (%d)" cartItems)))
         li (aHref Path.Admin.manage (text "Admin"))
     ]
 
-let partUser (user : string option) = 
+let partUser (user : string option) =
     divId "part-user" [
         match user with
-        | Some user -> 
+        | Some user ->
             yield text (sprintf "Logged on as %s, " user)
             yield aHref Path.Account.logoff (text "Log off")
         | None ->
             yield aHref Path.Account.logon (text "Log on")
     ]
 
-let partGenres (genres : Db.Genre list) =
+let partGenres (genres : Db_Postgres.Genre list) =
     ulAttr ["id", "categories"] [
-        for genre in genres -> 
-            li (aHref 
-                    (Path.Store.browse |> Path.withParam (Path.Store.browseKey, genre.Name)) 
+        for genre in genres ->
+            li (aHref
+                    (Path.Store.browse |> Path.withParam (Path.Store.browseKey, genre.Name))
                     (text genre.Name))
     ]
 
-let index partNav partUser partGenres container = 
+let index partNav partUser partGenres container =
     html [
         head [
             title "Suave Music Store"
