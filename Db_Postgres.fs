@@ -8,8 +8,8 @@ type Artist = { ArtistId : int; Name : string}
 type Genre = { GenreId : int; Name : string; Description : string }
 type AlbumDetails = { AlbumId : int;  AlbumArtUrl : string; Price : Decimal; Title : string; Artist : string; Genre : string }
 type User = { UserId : int; UserName : string; Email : string; Password : string; Role : string }
-type Cart = { RecordId : int; CartId : int; AlbumId : int; Count : int; DateCreated : System.DateTime }
-type CartDetails = { CartId : int; Count : int; AlbumTitle : string; AlbumId : int; Price : Decimal }
+type Cart = { RecordId : int; CartId : string; AlbumId : int; Count : int; DateCreated : System.DateTime }
+type CartDetails = { CartId : string; Count : int; AlbumTitle : string; AlbumId : int; Price : Decimal }
 type BestSeller = { AlbumId : int; Title : string; AlbumArtUrl : string; Count : int }
 
 let getContext() = ()
@@ -108,56 +108,134 @@ let getAlbumsDetails _ : AlbumDetails list =
   albumDetails
 
 let getBestSellers _ : BestSeller list  =
-    //ctx.``[dbo].[BestSellers]`` |> Seq.toList
-  []
+  use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
+  connection.Open()
+  use command = new NpgsqlCommand("SELECT album_id, title, album_art_url, count FROM bestsellers", connection)
+  use reader = command.ExecuteReader()
+  let bestSellers =
+    [ while reader.Read() do
+      yield {
+        AlbumId = reader.GetInt32(reader.GetOrdinal("album_id"))
+        AlbumArtUrl = reader.GetString(reader.GetOrdinal("album_art_url"))
+        Title = reader.GetString(reader.GetOrdinal("title"))
+        Count = reader.GetInt32(reader.GetOrdinal("count"))
+      }
+    ]
+  bestSellers
 
 let getAlbum id _ : Album option =
-    //query {
-    //    for album in ctx.``[dbo].[Albums]`` do
-    //        where (album.AlbumId = id)
-    //        select album
-    //} |> firstOrNone
-  None
+  let sql = sprintf "SELECT album_id, genre_id, artist_id, title, price, album_art_url FROM albums WHERE album_id = %i" id
+  use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
+  connection.Open()
+  use command = new NpgsqlCommand(sql, connection)
+  use reader = command.ExecuteReader()
+  let albums =
+    [ while reader.Read() do
+      yield {
+        AlbumId = reader.GetInt32(reader.GetOrdinal("album_id"))
+        GenreId = reader.GetInt32(reader.GetOrdinal("genre_id"))
+        ArtistId = reader.GetInt32(reader.GetOrdinal("artist_id"))
+        Title = reader.GetString(reader.GetOrdinal("title"))
+        Price = reader.GetDecimal(reader.GetOrdinal("price"))
+        AlbumArtUrl = reader.GetString(reader.GetOrdinal("album_art_url"))
+      }
+    ]
+  albums |> firstOrNone
 
 let validateUser (username, password) _ : User option =
-    //query {
-    //    for user in ctx.``[dbo].[Users]`` do
-    //        where (user.UserName = username && user.Password = password)
-    //        select user
-    //} |> firstOrNone
-  None
+  let sql = sprintf "SELECT user_id, user_name, email, password, role FROM users
+  WHERE user_name = '%s' AND password = '%s'" username password
+  use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
+  connection.Open()
+  use command = new NpgsqlCommand(sql, connection)
+  use reader = command.ExecuteReader()
+  let users =
+    [ while reader.Read() do
+      yield {
+        UserId = reader.GetInt32(reader.GetOrdinal("user_id"))
+        UserName = reader.GetString(reader.GetOrdinal("user_name"))
+        Email = reader.GetString(reader.GetOrdinal("email"))
+        Password = reader.GetString(reader.GetOrdinal("password"))
+        Role = reader.GetString(reader.GetOrdinal("role"))
+      }
+    ]
+  users |> firstOrNone
 
 let getUser username _ : User option =
-    //query {
-    //    for user in ctx.``[dbo].[Users]`` do
-    //    where (user.UserName = username)
-    //    select user
-    //} |> firstOrNone
-  None
+  let sql = sprintf "SELECT user_id, user_name, email, password, role FROM users
+  WHERE user_name = '%s'" username
+  use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
+  connection.Open()
+  use command = new NpgsqlCommand(sql, connection)
+  use reader = command.ExecuteReader()
+  let users =
+    [ while reader.Read() do
+      yield {
+        UserId = reader.GetInt32(reader.GetOrdinal("user_id"))
+        UserName = reader.GetString(reader.GetOrdinal("user_name"))
+        Email = reader.GetString(reader.GetOrdinal("email"))
+        Password = reader.GetString(reader.GetOrdinal("password"))
+        Role = reader.GetString(reader.GetOrdinal("role"))
+      }
+    ]
+  users |> firstOrNone
 
 let getCart cartId albumId _ : Cart option =
-    //query {
-    //    for cart in ctx.``[dbo].[Carts]`` do
-    //        where (cart.CartId = cartId && cart.AlbumId = albumId)
-    //        select cart
-    //} |> firstOrNone
-  None
+  let sql = sprintf "SELECT record_id, cart_id, album_id, count, date_created FROM carts
+  WHERE cart_id = '%s' AND album_id = %i" cartId albumId
+  use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
+  connection.Open()
+  use command = new NpgsqlCommand(sql, connection)
+  use reader = command.ExecuteReader()
+  let carts =
+    [ while reader.Read() do
+      yield {
+        RecordId = reader.GetInt32(reader.GetOrdinal("record_id"))
+        CartId = reader.GetString(reader.GetOrdinal("cart_id"))
+        AlbumId = reader.GetInt32(reader.GetOrdinal("album_id"))
+        Count = reader.GetInt32(reader.GetOrdinal("count"))
+        DateCreated = reader.GetDateTime(reader.GetOrdinal("date_created"))
+      }
+    ]
+  carts |> firstOrNone
 
 let getCarts cartId _ : Cart list =
-    //query {
-    //    for cart in ctx.``[dbo].[Carts]`` do
-    //        where (cart.CartId = cartId)
-    //        select cart
-    //} |> Seq.toList
-  []
+  let sql = sprintf "SELECT record_id, cart_id, album_id, count, date_created FROM carts
+  WHERE cart_id = '%s'" cartId
+  use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
+  connection.Open()
+  use command = new NpgsqlCommand(sql, connection)
+  use reader = command.ExecuteReader()
+  let carts =
+    [ while reader.Read() do
+      yield {
+        RecordId = reader.GetInt32(reader.GetOrdinal("record_id"))
+        CartId = reader.GetString(reader.GetOrdinal("cart_id"))
+        AlbumId = reader.GetInt32(reader.GetOrdinal("album_id"))
+        Count = reader.GetInt32(reader.GetOrdinal("count"))
+        DateCreated = reader.GetDateTime(reader.GetOrdinal("date_created"))
+      }
+    ]
+  carts
 
 let getCartsDetails cartId _ : CartDetails list =
-    //query {
-    //    for cart in ctx.``[dbo].[CartDetails]`` do
-    //        where (cart.CartId = cartId)
-    //        select cart
-    //} |> Seq.toList
-  []
+  let sql = sprintf "SELECT cart_id, count, album_title, album_id, price FROM cartdetails
+  WHERE cart_id = '%s'" cartId
+  use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
+  connection.Open()
+  use command = new NpgsqlCommand(sql, connection)
+  use reader = command.ExecuteReader()
+  let cartDetails =
+    [ while reader.Read() do
+      yield {
+        CartId = reader.GetString(reader.GetOrdinal("cart_id"))
+        Count = reader.GetInt32(reader.GetOrdinal("count"))
+        AlbumTitle = reader.GetString(reader.GetOrdinal("album_title"))
+        AlbumId = reader.GetInt32(reader.GetOrdinal("album_id"))
+        Price = reader.GetDecimal(reader.GetOrdinal("Price"))
+      }
+    ]
+  cartDetails
 
 let createAlbum (artistId, genreId, price, title) _ =
     //ctx.``[dbo].[Albums]``.Create(artistId, genreId, price, title) |> ignore
@@ -178,19 +256,25 @@ let deleteAlbum (album : Album) _ =
   ()
 
 let addToCart cartId albumId _  =
-    //match getCart cartId albumId ctx with
-    //| Some cart ->
-    //    cart.Count <- cart.Count + 1
-    //| None ->
-    //    ctx.``[dbo].[Carts]``.Create(albumId, cartId, 1, DateTime.UtcNow) |> ignore
-    //ctx.SubmitUpdates()
-  ()
+  use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
+  connection.Open()
+  match getCart cartId albumId () with
+  | Some cart ->
+    let sql = sprintf "UPDATE carts SET count = count + 1 WHERE record_id = %i" cart.RecordId
+    use command = new NpgsqlCommand(sql, connection)
+    command.ExecuteNonQuery() |> ignore
+  | None ->
+    let sql = sprintf "INSERT INTO carts (cart_id, album_id, count, date_created)
+    VALUES ('%s', %i, 1, now())" cartId albumId
+    use command = new NpgsqlCommand(sql, connection)
+    command.ExecuteNonQuery() |> ignore
 
 let removeFromCart (cart : Cart) albumId _ =
-    //cart.Count <- cart.Count - 1
-    //if cart.Count = 0 then cart.Delete()
-    //ctx.SubmitUpdates()
-  ()
+  use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
+  connection.Open()
+  let sql = sprintf "DELETE FROM carts WHERE record_id = %i" cart.RecordId
+  use command = new NpgsqlCommand(sql, connection)
+  command.ExecuteNonQuery() |> ignore
 
 let upgradeCarts (cartId : string, username :string) _ =
     //for cart in getCarts cartId ctx do
