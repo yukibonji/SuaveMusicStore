@@ -258,9 +258,11 @@ let updateAlbum (album : Album) (artistId, genreId, price, title) _ =
   command.ExecuteNonQuery() |> ignore
 
 let deleteAlbum (album : Album) _ =
-    //album.Delete()
-    //ctx.SubmitUpdates()
-  ()
+  use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
+  connection.Open()
+  let sql = sprintf "DELETE FROM albums where album_id = %i" album.AlbumId
+  use command = new NpgsqlCommand(sql, connection)
+  command.ExecuteNonQuery() |> ignore
 
 let addToCart cartId albumId _  =
   use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
@@ -284,22 +286,29 @@ let removeFromCart (cart : Cart) albumId _ =
   command.ExecuteNonQuery() |> ignore
 
 let upgradeCarts (cartId : string, username :string) _ =
-    //for cart in getCarts cartId ctx do
-    //    match getCart username cart.AlbumId ctx with
-    //    | Some existing ->
-    //        existing.Count <- existing.Count +  cart.Count
-    //        cart.Delete()
-    //    | None ->
-    //        cart.CartId <- username
-    //ctx.SubmitUpdates()
+  use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
+  connection.Open()
+
+  for cart in getCarts cartId () do
+    match getCart username cart.AlbumId () with
+    | Some existing ->
+      ()
+        //existing.Count <- existing.Count +  cart.Count
+        //cart.Delete()
+    | None ->
+        //cart.CartId <- username
+      ()
   ()
 
 let newUser (username, password, email) _ =
-    //let user = ctx.``[dbo].[Users]``.Create(email, password, "user", username)
-    //ctx.SubmitUpdates()
-    //user
+  use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
+  connection.Open()
+  let sql = sprintf "INSERT INTO users (user_name, email, password, role)
+  VALUES ('%s', '%s', '%s', '%s')" username email password "user"
+  use command = new NpgsqlCommand(sql, connection)
+  command.ExecuteNonQuery() |> ignore
 
-  { UserId = 1; UserName = ""; Email = ""; Password = ""; Role = "" }
+  (getUser username ()).Value
 
 let placeOrder (username : string) _ =
     //let carts = getCartsDetails username ctx
