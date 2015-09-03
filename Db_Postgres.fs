@@ -238,9 +238,12 @@ let getCartsDetails cartId _ : CartDetails list =
   cartDetails
 
 let createAlbum (artistId, genreId, price, title) _ =
-    //ctx.``[dbo].[Albums]``.Create(artistId, genreId, price, title) |> ignore
-    //ctx.SubmitUpdates()
-  ()
+  use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
+  connection.Open()
+  let sql = sprintf "INSERT INTO albums (artist_id, genre_id, price, title)
+  VALUES (%i, %i, %M, '%s')" artistId genreId price title
+  use command = new NpgsqlCommand(sql, connection)
+  command.ExecuteNonQuery() |> ignore
 
 let updateAlbum (album : Album) (artistId, genreId, price, title) _ =
     //album.ArtistId <- artistId

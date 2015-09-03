@@ -476,6 +476,7 @@ CREATE TABLE Users(
 	password varchar(200) NOT NULL,
 	role varchar(50) NOT NULL);
 
+--password is admin
 INSERT INTO Users (user_name, email, password, role) VALUES ('admin', 'admin@example@com', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', 'admin');
 
 CREATE VIEW AlbumDetails
