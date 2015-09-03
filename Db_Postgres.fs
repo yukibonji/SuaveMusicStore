@@ -246,12 +246,16 @@ let createAlbum (artistId, genreId, price, title) _ =
   command.ExecuteNonQuery() |> ignore
 
 let updateAlbum (album : Album) (artistId, genreId, price, title) _ =
-    //album.ArtistId <- artistId
-    //album.GenreId <- genreId
-    //album.Price <- price
-    //album.Title <- title
-    //ctx.SubmitUpdates()
-  ()
+  use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
+  connection.Open()
+  let sql = sprintf "UPDATE albums
+  SET artist_id = %i,
+  genre_id = %i,
+  price = %M,
+  title = '%s'
+  WHERE album_id = %i" artistId genreId price title album.AlbumId
+  use command = new NpgsqlCommand(sql, connection)
+  command.ExecuteNonQuery() |> ignore
 
 let deleteAlbum (album : Album) _ =
     //album.Delete()
