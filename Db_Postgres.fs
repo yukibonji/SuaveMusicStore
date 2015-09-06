@@ -10,7 +10,7 @@ type AlbumDetails = { AlbumId : int;  AlbumArtUrl : string; Price : Decimal; Tit
 type User = { UserId : int; UserName : string; Email : string; Password : string; Role : string }
 type Cart = { RecordId : int; CartId : string; AlbumId : int; Count : int; DateCreated : System.DateTime }
 type CartDetails = { CartId : string; Count : int; AlbumTitle : string; AlbumId : int; Price : Decimal }
-type BestSeller = { AlbumId : int; Title : string; AlbumArtUrl : string; Count : int }
+type BestSeller = { AlbumId : int; Title : string; AlbumArtUrl : string; Count : int64 }
 
 let getContext() = ()
 
@@ -118,7 +118,7 @@ let getBestSellers _ : BestSeller list  =
         AlbumId = reader.GetInt32(reader.GetOrdinal("album_id"))
         AlbumArtUrl = reader.GetString(reader.GetOrdinal("album_art_url"))
         Title = reader.GetString(reader.GetOrdinal("title"))
-        Count = reader.GetInt32(reader.GetOrdinal("count"))
+        Count = reader.GetInt64(reader.GetOrdinal("count"))
       }
     ]
   bestSellers
@@ -312,14 +312,24 @@ let newUser (username, password, email) _ =
   (getUser username ()).Value
 
 let placeOrder (username : string) _ =
-    //let carts = getCartsDetails username ctx
-    //let total = carts |> List.sumBy (fun c -> (decimal) c.Count * c.Price)
-    //let order = ctx.``[dbo].[Orders]``.Create(DateTime.UtcNow, total)
-    //order.Username <- username
-    //ctx.SubmitUpdates()
-    //for cart in carts do
-    //    let orderDetails = ctx.``[dbo].[OrderDetails]``.Create(cart.AlbumId, order.OrderId, cart.Count, cart.Price)
-    //    getCart cart.CartId cart.AlbumId ctx
-    //    |> Option.iter (fun cart -> cart.Delete())
-    //ctx.SubmitUpdates()
-  ()
+  let carts = getCartsDetails username ()
+  let total = carts |> List.sumBy (fun c -> (decimal) c.Count * c.Price)
+  use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
+  connection.Open()
+  let sql = sprintf "INSERT INTO orders (order_date, user_name, total)
+  VALUES ((SELECT CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), '%s', %M)
+  RETURNING order_id" username total
+  use command = new NpgsqlCommand(sql, connection)
+  let orderId = command.ExecuteScalar() :?> int
+
+  for cart in carts do
+    let sql = sprintf "INSERT INTO orderdetails (order_id, album_id, quantity, unit_price)
+    VALUES (%A, %i, %i, %M)" orderId cart.AlbumId cart.Count cart.Price
+    use command = new NpgsqlCommand(sql, connection)
+    command.ExecuteNonQuery() |> ignore
+
+    getCart cart.CartId cart.AlbumId ()
+    |> Option.iter (fun cart ->
+         let sql = sprintf "DELETE FROM carts where record_id = %i" cart.RecordId
+         use command = new NpgsqlCommand(sql, connection)
+         command.ExecuteNonQuery() |> ignore)
