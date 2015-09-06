@@ -292,13 +292,14 @@ let upgradeCarts (cartId : string, username :string) _ =
   for cart in getCarts cartId () do
     match getCart username cart.AlbumId () with
     | Some existing ->
-      ()
-        //existing.Count <- existing.Count +  cart.Count
-        //cart.Delete()
+        let sql = sprintf "UPDATE carts SET count = count + 1 WHERE record_id = %i;
+        DELETE FROM carts WHERE record_id = %i;" existing.RecordId cart.RecordId
+        use command = new NpgsqlCommand(sql, connection)
+        command.ExecuteNonQuery() |> ignore
     | None ->
-        //cart.CartId <- username
-      ()
-  ()
+        let sql = sprintf "UPDATE carts SET cart_id = '%s' WHERE record_id = %i;" username cart.RecordId
+        use command = new NpgsqlCommand(sql, connection)
+        command.ExecuteNonQuery() |> ignore
 
 let newUser (username, password, email) _ =
   use connection = new NpgsqlConnection("Server=127.0.0.1;User Id=suave; Password=1234;Database=SuaveMusicStore;")
