@@ -5,6 +5,8 @@ open System
 open Suave.Html
 open Suave.Form
 
+module Db = SuaveMusicStore.DbPostgres
+
 let divId id = divAttr ["id", id]
 let divClass c = divAttr ["class", c]
 let h1 xml = tag "h1" [] xml
@@ -71,7 +73,7 @@ let renderForm (layout : FormLayout<_>) =
         yield submitInput layout.SubmitText
     ]
 
-let home (bestSellers : Db_Postgres.BestSeller list) = [
+let home (bestSellers : Db.BestSeller list) = [
     imgSrc "/home-showcase.png"
     h2 "Fresh off the grill"
     ulAttr ["id", "album-list"] [
@@ -94,7 +96,7 @@ let store genres = [
     ]
 ]
 
-let browse genre (albums : Db_Postgres.Album list) = [
+let browse genre (albums : Db.Album list) = [
     divClass "genre" [
         h2 (sprintf "Genre: %s" genre)
 
@@ -108,7 +110,7 @@ let browse genre (albums : Db_Postgres.Album list) = [
     ]
 ]
 
-let details (album : Db_Postgres.AlbumDetails) = [
+let details (album : Db.AlbumDetails) = [
     h2 album.Title
     p [ imgSrc album.AlbumArtUrl ]
     divId "album-details" [
@@ -123,7 +125,7 @@ let details (album : Db_Postgres.AlbumDetails) = [
     ]
 ]
 
-let manage (albums : Db_Postgres.AlbumDetails list) = [
+let manage (albums : Db.AlbumDetails list) = [
     h2 "Index"
     p [
         aHref Path.Admin.createAlbum (text "Create New")
@@ -192,7 +194,7 @@ let createAlbum genres artists = [
     ]
 ]
 
-let editAlbum (album : Db_Postgres.Album) genres artists = [
+let editAlbum (album : Db.Album) genres artists = [
     h2 "Edit"
 
     renderForm
@@ -274,7 +276,7 @@ let emptyCart = [
     text "!"
 ]
 
-let nonEmptyCart (carts : Db_Postgres.CartDetails list) = [
+let nonEmptyCart (carts : Db.CartDetails list) = [
     h2 "Review your cart:"
     pAttr ["class", "button"] [
             aHref Path.Cart.checkout (text "Checkout >>")
@@ -376,7 +378,7 @@ let partUser (user : string option) =
             yield aHref Path.Account.logon (text "Log on")
     ]
 
-let partGenres (genres : Db_Postgres.Genre list) =
+let partGenres (genres : Db.Genre list) =
     ulAttr ["id", "categories"] [
         for genre in genres ->
             li (aHref

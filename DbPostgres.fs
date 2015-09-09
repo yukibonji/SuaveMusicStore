@@ -1,4 +1,4 @@
-﻿module SuaveMusicStore.Db_Postgres
+﻿module SuaveMusicStore.DbPostgres
 
 open System
 open Npgsql
