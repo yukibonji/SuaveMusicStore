@@ -8,4 +8,5 @@ RUN cd ./app && \
 
 EXPOSE 8083
 
-CMD ["mono", "./app/bin/Debug/SuaveMusicStore.exe"]
+CMD []
+#CMD ["mono", "./app/bin/Debug/SuaveMusicStore.exe"]
