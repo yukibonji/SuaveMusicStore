@@ -19,7 +19,7 @@ fi
 docker run \
 	--name $DB_CNTNR_NAME \
 	-e POSTGRES_PASSWORD=mysecretpassword \
-	-d theimowski/suavemusicstoredb:0.1
+	-d theimowski/suavemusicstore_db:0.1
 
 # how to wait for the postgres to init?
 sleep 10
@@ -28,5 +28,5 @@ docker run \
 	-p 8083:8083 -d \
 	--name $APP_CNTNR_NAME \
 	--link $DB_CNTNR_NAME:$DB_CNTNR_NAME \
-	theimowski/suavemusicstore:0.1 \
+	theimowski/suavemusicstore_app:0.1 \
 	-c "mono ./app/bin/Debug/SuaveMusicStore.exe"
