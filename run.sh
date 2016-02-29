@@ -6,14 +6,14 @@ export DB_CNTNR_ID=`docker ps -aq -f name=$DB_CNTNR_NAME`
 export APP_CNTNR_NAME=suavemusicstore_app
 export APP_CNTNR_ID=`docker ps -aq -f name=$APP_CNTNR_NAME`
 
-if [ -n "$DB_CNTNR_ID" ]; then
-	docker stop $DB_CNTNR_ID
-	docker rm $DB_CNTNR_ID
-fi
-
 if [ -n "$APP_CNTNR_ID" ]; then
 	docker stop $APP_CNTNR_ID
 	docker rm $APP_CNTNR_ID
+fi
+
+if [ -n "$DB_CNTNR_ID" ]; then
+	docker stop $DB_CNTNR_ID
+	docker rm $DB_CNTNR_ID
 fi
 
 docker run \
