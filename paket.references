@@ -2,3 +2,4 @@ FSharp.Core
 SQLProvider
 Suave
 Suave.Experimental
+Npgsql

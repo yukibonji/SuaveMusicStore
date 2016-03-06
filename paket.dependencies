@@ -5,3 +5,4 @@ nuget FSharp.Core 3.1.2.5
 nuget SQLProvider 0.0.9-alpha
 nuget Suave 1.0.0
 nuget Suave.Experimental 1.0.0
+nuget Npgsql 2.2.5
