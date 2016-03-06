@@ -5,6 +5,8 @@ open System
 open Suave.Html
 open Suave.Form
 
+module Db = SuaveMusicStore.DbMsSql
+
 let divId id = divAttr ["id", id]
 let divClass c = divAttr ["class", c]
 let h1 xml = tag "h1" [] xml

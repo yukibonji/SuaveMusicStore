@@ -13,6 +13,8 @@ open Suave.RequestErrors
 open Suave.State.CookieStateStore
 open Suave.Successful
 
+module Db = SuaveMusicStore.DbMsSql
+
 let passHash (pass: string) =
     use sha = Security.Cryptography.SHA256.Create()
     Text.Encoding.UTF8.GetBytes(pass)

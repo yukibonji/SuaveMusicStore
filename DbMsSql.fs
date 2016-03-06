@@ -1,11 +1,11 @@
-﻿module SuaveMusicStore.Db
+﻿module SuaveMusicStore.DbMsSql
 
 open System
 open FSharp.Data.Sql
 
-type Sql = 
-    SqlDataProvider< 
-        "Server=(LocalDb)\\v11.0;Database=SuaveMusicStore;Trusted_Connection=True;MultipleActiveResultSets=true", 
+type Sql =
+    SqlDataProvider<
+        "Server=(LocalDb)\\v11.0;Database=SuaveMusicStore;Trusted_Connection=True;MultipleActiveResultSets=true",
         DatabaseVendor=Common.DatabaseProviderTypes.MSSQLSERVER >
 
 type DbContext = Sql.dataContext
@@ -22,14 +22,14 @@ let getContext() = Sql.GetDataContext()
 
 let firstOrNone s = s |> Seq.tryFind (fun _ -> true)
 
-let getGenres (ctx : DbContext) : Genre list = 
+let getGenres (ctx : DbContext) : Genre list =
     ctx.``[dbo].[Genres]`` |> Seq.toList
 
-let getArtists (ctx : DbContext) : Artist list = 
+let getArtists (ctx : DbContext) : Artist list =
     ctx.``[dbo].[Artists]`` |> Seq.toList
 
-let getAlbumsForGenre genreName (ctx : DbContext) : Album list = 
-    query { 
+let getAlbumsForGenre genreName (ctx : DbContext) : Album list =
+    query {
         for album in ctx.``[dbo].[Albums]`` do
             join genre in ctx.``[dbo].[Genres]`` on (album.GenreId = genre.GenreId)
             where (genre.Name = genreName)
@@ -37,21 +37,21 @@ let getAlbumsForGenre genreName (ctx : DbContext) : Album list =
     }
     |> Seq.toList
 
-let getAlbumDetails id (ctx : DbContext) : AlbumDetails option = 
-    query { 
+let getAlbumDetails id (ctx : DbContext) : AlbumDetails option =
+    query {
         for album in ctx.``[dbo].[AlbumDetails]`` do
             where (album.AlbumId = id)
             select album
     } |> firstOrNone
 
-let getAlbumsDetails (ctx : DbContext) : AlbumDetails list = 
+let getAlbumsDetails (ctx : DbContext) : AlbumDetails list =
     ctx.``[dbo].[AlbumDetails]`` |> Seq.toList
 
 let getBestSellers (ctx : DbContext) : BestSeller list  =
     ctx.``[dbo].[BestSellers]`` |> Seq.toList
 
-let getAlbum id (ctx : DbContext) : Album option = 
-    query { 
+let getAlbum id (ctx : DbContext) : Album option =
+    query {
         for album in ctx.``[dbo].[Albums]`` do
             where (album.AlbumId = id)
             select album
@@ -64,7 +64,7 @@ let validateUser (username, password) (ctx : DbContext) : User option =
             select user
     } |> firstOrNone
 
-let getUser username (ctx : DbContext) : User option = 
+let getUser username (ctx : DbContext) : User option =
     query {
         for user in ctx.``[dbo].[Users]`` do
         where (user.UserName = username)
@@ -103,7 +103,7 @@ let updateAlbum (album : Album) (artistId, genreId, price, title) (ctx : DbConte
     album.Title <- title
     ctx.SubmitUpdates()
 
-let deleteAlbum (album : Album) (ctx : DbContext) = 
+let deleteAlbum (album : Album) (ctx : DbContext) =
     album.Delete()
     ctx.SubmitUpdates()
 
@@ -115,7 +115,7 @@ let addToCart cartId albumId (ctx : DbContext)  =
         ctx.``[dbo].[Carts]``.Create(albumId, cartId, 1, DateTime.UtcNow) |> ignore
     ctx.SubmitUpdates()
 
-let removeFromCart (cart : Cart) albumId (ctx : DbContext) = 
+let removeFromCart (cart : Cart) albumId (ctx : DbContext) =
     cart.Count <- cart.Count - 1
     if cart.Count = 0 then cart.Delete()
     ctx.SubmitUpdates()
