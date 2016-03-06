@@ -5,7 +5,7 @@ open System
 open Suave.Html
 open Suave.Form
 
-module Db = SuaveMusicStore.DbMsSql
+module Db = SuaveMusicStore.DbPostgres
 
 let divId id = divAttr ["id", id]
 let divClass c = divAttr ["class", c]
