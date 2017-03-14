@@ -230,6 +230,22 @@ let addToCart albumId =
                 succeed)
         >=> Redirection.FOUND Path.Cart.overview
 
+let removeFromCart albumId =
+    session (function
+    | NoSession -> never
+    | UserLoggedOn { Username = cartId } | CartIdOnly cartId ->
+        let ctx = Db.getContext()
+        match Db.getCart cartId albumId ctx with
+        | Some cart -> 
+            Db.removeFromCart cart albumId ctx
+            Db.getCartsDetails cartId ctx 
+            |> View.cart 
+            |> List.map Html.htmlToString 
+            |> String.concat "" 
+            |> OK
+        | None -> 
+            never)
+
 let webPart = 
     choose [
         path Path.home >=> html View.home
@@ -247,8 +263,9 @@ let webPart =
 
         path Path.Cart.overview >=> cart
         pathScan Path.Cart.addAlbum addToCart
+        pathScan Path.Cart.removeAlbum removeFromCart
 
-        pathRegex "(.*)\.(css|png|gif)" >=> Files.browseHome
+        pathRegex "(.*)\.(css|png|gif|js)" >=> Files.browseHome
         html View.notFound
     ]
 
