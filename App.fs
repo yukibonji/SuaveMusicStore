@@ -1,6 +1,4 @@
-module SuaveMusicStore
+open Suave                 // always open suave
+open Suave.Successful      // for OK-result
 
-[<EntryPoint>]
-let main argv =
-    printfn "%A" argv
-    0 // return an integer exit code
+startWebServer defaultConfig (OK "Hello World!")
